@@ -1,9 +1,10 @@
 require 'spec_helper'
+require 'pry'
 
 describe Faraday::HttpCache::Storage do
   let(:cache_key) { '6e3b941d0f7572291c777b3e48c04b74124a55d0' }
   let(:request) do
-    env = { method: :get, url: 'http://test/index', body: JSON.dump({}) }
+    env = { method: :get, url: 'http://test/index', body: JSON.dump({}), cache_key: cache_key }
     double(env.merge(serializable_hash: env))
   end
 
@@ -102,7 +103,7 @@ describe Faraday::HttpCache::Storage do
   describe 'deleting responses' do
     it 'removes the entries from the cache of the given URL' do
       subject.write(request, response)
-      subject.delete(request.url, request.body)
+      subject.delete(request.cache_key)
       expect(subject.read(request)).to be_nil
     end
   end

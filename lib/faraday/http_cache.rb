@@ -102,6 +102,11 @@ module Faraday
     #   # Initialize the middleware with a MemoryStore and logger
     #   store = ActiveSupport::Cache.lookup_store
     #   Faraday::HttpCache.new(app, store: store, logger: my_logger)
+    
+    def self.default_serializer
+      JSON
+    end
+
     def initialize(app, options = {})
       super(app)
       assert_valid_options!(options)
@@ -111,12 +116,13 @@ module Faraday
       @instrumenter = options[:instrumenter]
       @instrument_name = options.fetch(:instrument_name, EVENT_NAME)
       @storage = create_storage(options)
+      @serializer = options[:serializer] || self.class.default_serializer
     end
 
     # Public: Process the request into a duplicate of this instance to
     # ensure that the internal state is preserved.
     def call(env)
-      dup.call!(env)
+      dup.call!(env, serializer: @serializer)
     end
 
     # Internal: Process the stack request to try to serve a cache response.
@@ -129,9 +135,9 @@ module Faraday
     # process is finished.
     #
     # Returns a 'Faraday::Response' instance.
-    def call!(env)
+    def call!(env, options)
       @trace = []
-      @request = create_request(env)
+      @request = create_request(env, serializer: options[:serializer])
 
       response = nil
 
@@ -286,10 +292,10 @@ module Faraday
       headers = %w(Location Content-Location)
       headers.each do |header|
         url = response.headers[header]
-        @storage.delete(url) if url
+        @storage.delete(request.cache_key) if url
       end
 
-      @storage.delete(request.url)
+      @storage.delete(request.cache_key)
       trace :delete
     end
 
@@ -322,8 +328,8 @@ module Faraday
       }
     end
 
-    def create_request(env)
-      Request.from_env(env)
+    def create_request(env, options = {})
+      Request.from_env(env, options)
     end
 
     # Internal: Logs the trace info about the incoming request

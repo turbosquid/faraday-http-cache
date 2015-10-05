@@ -29,7 +29,7 @@ module Faraday
       #                            respond to 'dump' and 'load'.
       def initialize(options = {})
         @cache = options[:store] || MemoryStore.new
-        @serializer = options[:serializer] || JSON
+        @serializer = options[:serializer] || Faraday::HttpCache.default_serializer
         @logger = options[:logger]
         assert_valid_store!
       end
@@ -42,7 +42,7 @@ module Faraday
       #
       # Returns nothing.
       def write(request, response)
-        key = cache_key_for(request.url, request.body)
+        key = request.cache_key
         entry = serialize_entry(request.serializable_hash, response.serializable_hash)
 
         entries = cache.read(key) || []
@@ -69,7 +69,7 @@ module Faraday
       #
       # Returns an instance of 'klass'.
       def read(request, klass = Faraday::HttpCache::Response)
-        cache_key = cache_key_for(request.url, request.body)
+        cache_key = request.cache_key
         entries = cache.read(cache_key)
         response = lookup_response(request, entries)
 
@@ -78,8 +78,7 @@ module Faraday
         end
       end
 
-      def delete(url, body = nil)
-        cache_key = cache_key_for(url, body)
+      def delete(cache_key)
         cache.delete(cache_key)
       end
 
@@ -140,17 +139,6 @@ module Faraday
         @serializer.load(object).each_with_object({}) do |(key, value), hash|
           hash[key.to_sym] = value
         end
-      end
-
-      # Internal: Computes the cache key for a specific request, taking in
-      # account the current serializer to avoid cross serialization issues.
-      #
-      # url - The request URL.
-      #
-      # Returns a String.
-      def cache_key_for(url, body = nil)
-        prefix = (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
-        Digest::SHA1.hexdigest("#{prefix}#{url}#{body}")
       end
 
       # Internal: Checks if the given cache object supports the
