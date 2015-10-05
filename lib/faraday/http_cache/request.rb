@@ -25,10 +25,8 @@ module Faraday
         true
       end
 
-      # Computes the cache key for this request instance, taking in
-      # account the current serializer to avoid cross serialization issues.
-      #
-      # url - The request URL.
+      # Computes the cache key for this request instance, accountng for the
+      # current serializer to avoid cross serialization issues.
       #
       # Returns a String.
       def cache_key
