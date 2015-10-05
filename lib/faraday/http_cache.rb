@@ -102,9 +102,15 @@ module Faraday
     #   # Initialize the middleware with a MemoryStore and logger
     #   store = ActiveSupport::Cache.lookup_store
     #   Faraday::HttpCache.new(app, store: store, logger: my_logger)
-    
-    def self.default_serializer
-      JSON
+
+    class << self
+      def default_serializer
+        JSON
+      end
+
+      def cache_key(prefix, url, body = nil)
+        Digest::SHA1.hexdigest("#{prefix}#{url}#{body}")
+      end
     end
 
     def initialize(app, options = {})
@@ -289,10 +295,11 @@ module Faraday
     end
 
     def delete(request, response)
+      prefix = (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
       headers = %w(Location Content-Location)
       headers.each do |header|
         url = response.headers[header]
-        @storage.delete(request.cache_key) if url
+        @storage.delete_by_url(prefix, url) if url
       end
 
       @storage.delete(request.cache_key)

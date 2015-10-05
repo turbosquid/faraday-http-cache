@@ -78,6 +78,11 @@ module Faraday
         end
       end
 
+      def delete_by_url(prefix, url)
+        key = Faraday::HttpCache.cache_key(prefix, url)
+        delete(key)
+      end
+
       def delete(cache_key)
         cache.delete(cache_key)
       end

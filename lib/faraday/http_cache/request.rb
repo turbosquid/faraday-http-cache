@@ -31,7 +31,7 @@ module Faraday
       # Returns a String.
       def cache_key
         prefix = (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
-        Digest::SHA1.hexdigest("#{prefix}#{@url}#{@body}")
+        Faraday::HttpCache.cache_key(prefix, @url, @body)
       end
 
       def no_cache?
