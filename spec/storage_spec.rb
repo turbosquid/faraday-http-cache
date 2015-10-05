@@ -1,5 +1,4 @@
 require 'spec_helper'
-require 'pry'
 
 describe Faraday::HttpCache::Storage do
   let(:cache_key) { '6e3b941d0f7572291c777b3e48c04b74124a55d0' }
