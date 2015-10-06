@@ -5,4 +5,3 @@ module Faraday
     end
   end
 end
- 
