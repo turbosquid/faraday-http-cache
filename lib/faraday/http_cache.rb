@@ -1,6 +1,5 @@
 require 'faraday'
 
-require 'faraday/http_cache/cache_prefix'
 require 'faraday/http_cache/storage'
 require 'faraday/http_cache/request'
 require 'faraday/http_cache/response'
@@ -44,7 +43,6 @@ module Faraday
   #     builder.use :http_cache, store: Rails.cache, instrumenter: ActiveSupport::Notifications
   #   end
   class HttpCache < Faraday::Middleware
-    include CachePrefix
 
     # Internal: valid options for the 'initialize' configuration Hash.
     VALID_OPTIONS = [:store, :serializer, :logger, :shared_cache, :instrumenter, :instrument_name]
@@ -106,14 +104,8 @@ module Faraday
     #   store = ActiveSupport::Cache.lookup_store
     #   Faraday::HttpCache.new(app, store: store, logger: my_logger)
 
-    class << self
-      def default_serializer
-        JSON
-      end
-
-      def cache_key(prefix, url, body = nil)
-        Digest::SHA1.hexdigest("#{prefix}#{url}#{body}")
-      end
+    def self.default_serializer
+      JSON
     end
 
     def initialize(app, options = {})
@@ -301,10 +293,12 @@ module Faraday
       headers = %w(Location Content-Location)
       headers.each do |header|
         url = response.headers[header]
-        @storage.delete_by_url(prefix, url) if url
+        key = @storage.cache_key(url)
+        @storage.delete(key) if url
       end
 
-      @storage.delete(request.cache_key)
+      key = @storage.cache_key(request.cache_key_parts)
+      @storage.delete(key)
       trace :delete
     end
 

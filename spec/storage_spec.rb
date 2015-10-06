@@ -1,9 +1,14 @@
 require 'spec_helper'
 
 describe Faraday::HttpCache::Storage do
-  let(:cache_key) { '6e3b941d0f7572291c777b3e48c04b74124a55d0' }
+  let(:cache_key) { '26ebd5d5b7b04203cfa5903bc97efb83c3fdf561' }
   let(:request) do
-    env = { method: :get, url: 'http://test/index', body: JSON.dump({}), cache_key: cache_key }
+    env = { 
+      method: :get,
+      url: 'http://test/index',
+      body: JSON.dump({}),
+    }
+    env[:cache_key_parts] = env.values_at(:url, :body)
     double(env.merge(serializable_hash: env))
   end
 
@@ -63,7 +68,7 @@ describe Faraday::HttpCache::Storage do
     end
 
     context 'with the Marshal serializer' do
-      let(:cache_key) { '337d1e9c6c92423dd1c48a23054139058f97be40' }
+      let(:cache_key) { '318945c0afc2a9f0a13cf774235552e8e486d483' }
       let(:serializer) { Marshal }
       let(:storage) { Faraday::HttpCache::Storage.new(store: cache, serializer: Marshal) }
 
@@ -102,7 +107,7 @@ describe Faraday::HttpCache::Storage do
   describe 'deleting responses' do
     it 'removes the entries from the cache of the given URL' do
       subject.write(request, response)
-      subject.delete(request.cache_key)
+      subject.delete(cache_key)
       expect(subject.read(request)).to be_nil
     end
   end

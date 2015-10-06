@@ -3,6 +3,7 @@ require 'digest/sha1'
 
 module Faraday
   class HttpCache < Faraday::Middleware
+
     # Internal: A wrapper around an ActiveSupport::CacheStore to store responses.
     #
     # Examples
@@ -34,6 +35,14 @@ module Faraday
         assert_valid_store!
       end
 
+      def prefix
+        (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
+      end
+
+      def cache_key(*parts)
+        Digest::SHA1.hexdigest("#{prefix}#{parts.join}")
+      end
+
       # Internal: Store a response inside the cache.
       #
       # request  - A Faraday::HttpCache::::Request instance of the executed HTTP
@@ -42,7 +51,7 @@ module Faraday
       #
       # Returns nothing.
       def write(request, response)
-        key = request.cache_key
+        key = cache_key(request.cache_key_parts)
         entry = serialize_entry(request.serializable_hash, response.serializable_hash)
 
         entries = cache.read(key) || []
@@ -69,8 +78,8 @@ module Faraday
       #
       # Returns an instance of 'klass'.
       def read(request, klass = Faraday::HttpCache::Response)
-        cache_key = request.cache_key
-        entries = cache.read(cache_key)
+        key = cache_key(request.cache_key_parts)
+        entries = cache.read(key)
         response = lookup_response(request, entries)
 
         if response
@@ -78,13 +87,13 @@ module Faraday
         end
       end
 
-      def delete_by_url(prefix, url)
-        key = Faraday::HttpCache.cache_key(prefix, url)
+      def delete_by_url(url)
+        key = cache_key(url)
         delete(key)
       end
 
-      def delete(cache_key)
-        cache.delete(cache_key)
+      def delete(key)
+        cache.delete(key)
       end
 
       private

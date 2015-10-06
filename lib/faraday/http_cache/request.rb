@@ -2,7 +2,6 @@ module Faraday
   class HttpCache < Faraday::Middleware
     # Internal: A class to represent a request
     class Request
-      include CachePrefix
 
       class << self
         def from_env(env, options = {})
@@ -27,12 +26,11 @@ module Faraday
         true
       end
 
-      # Computes the cache key for this request instance, accountng for the
-      # current serializer to avoid cross serialization issues.
+      # Provides the cache key string components for this request instance
       #
-      # Returns a String.
-      def cache_key
-        Faraday::HttpCache.cache_key(prefix, @url, @body)
+      # Returns an Array
+      def cache_key_parts
+        [@url, @body]
       end
 
       def no_cache?
