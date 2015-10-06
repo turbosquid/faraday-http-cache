@@ -2,11 +2,10 @@ module Faraday
   class HttpCache < Faraday::Middleware
     # Internal: A class to represent a request
     class Request
-
       class << self
         def from_env(env, options = {})
           hash = env.to_hash
-          new(method: hash[:method], url: hash[:url], body: hash[:body], headers: hash[:request_headers].dup, serializer: options[:serializer])
+          new(method: hash[:method], url: hash[:url], body: hash[:body], headers: hash[:request_headers].dup)
         end
       end
 
@@ -14,7 +13,6 @@ module Faraday
 
       def initialize(options)
         @method, @url, @headers, @body = options.values_at(:method, :url, :headers, :body)
-        @serializer = options[:serializer] || Faraday::HttpCache.default_serializer
       end
 
       # Internal: Validates if the current request method is valid for caching.

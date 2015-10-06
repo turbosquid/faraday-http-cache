@@ -293,12 +293,10 @@ module Faraday
       headers = %w(Location Content-Location)
       headers.each do |header|
         url = response.headers[header]
-        key = @storage.cache_key(url)
-        @storage.delete(key) if url
+        @storage.delete(url) if url
       end
 
-      key = @storage.cache_key(request.cache_key_parts)
-      @storage.delete(key)
+      @storage.delete(request.url)
       trace :delete
     end
 
