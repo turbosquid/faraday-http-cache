@@ -87,11 +87,6 @@ module Faraday
         end
       end
 
-      def delete_by_url(url)
-        key = cache_key(url)
-        delete(key)
-      end
-
       def delete(key)
         cache.delete(key)
       end
