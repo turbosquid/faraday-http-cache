@@ -3,7 +3,7 @@ module Faraday
     # Internal: A class to represent a request
     class Request
       class << self
-        def from_env(env, options = {})
+        def from_env(env)
           hash = env.to_hash
           new(method: hash[:method], url: hash[:url], body: hash[:body], headers: hash[:request_headers].dup)
         end

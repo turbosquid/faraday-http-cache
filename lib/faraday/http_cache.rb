@@ -138,7 +138,7 @@ module Faraday
     # Returns a 'Faraday::Response' instance.
     def call!(env, options)
       @trace = []
-      @request = create_request(env, serializer: options[:serializer])
+      @request = create_request(env)
 
       response = nil
 
@@ -329,8 +329,8 @@ module Faraday
       }
     end
 
-    def create_request(env, options = {})
-      Request.from_env(env, options)
+    def create_request(env)
+      Request.from_env(env)
     end
 
     # Internal: Logs the trace info about the incoming request
