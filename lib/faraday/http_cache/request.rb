@@ -5,14 +5,14 @@ module Faraday
       class << self
         def from_env(env)
           hash = env.to_hash
-          new(method: hash[:method], url: hash[:url], headers: hash[:request_headers].dup)
+          new(method: hash[:method], url: hash[:url], body: hash[:body], headers: hash[:request_headers].dup)
         end
       end
 
-      attr_reader :method, :url, :headers
+      attr_reader :method, :url, :headers, :body
 
       def initialize(options)
-        @method, @url, @headers = options.values_at(:method, :url, :headers)
+        @method, @url, @headers, @body = options.values_at(:method, :url, :headers, :body)
       end
 
       # Internal: Validates if the current request method is valid for caching.
@@ -22,6 +22,13 @@ module Faraday
         return false if method != :get && method != :head
         return false if cache_control.no_store?
         true
+      end
+
+      # Provides the cache key string components for this request instance
+      #
+      # Returns an Array
+      def cache_key_parts
+        [@url, @body]
       end
 
       def no_cache?
@@ -37,7 +44,8 @@ module Faraday
         {
           method: @method,
           url: @url,
-          headers: @headers
+          headers: @headers,
+          body: @body
         }
       end
     end

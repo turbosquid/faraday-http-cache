@@ -3,6 +3,7 @@ require 'digest/sha1'
 
 module Faraday
   class HttpCache < Faraday::Middleware
+
     # Internal: A wrapper around an ActiveSupport::CacheStore to store responses.
     #
     # Examples
@@ -29,9 +30,17 @@ module Faraday
       #                            respond to 'dump' and 'load'.
       def initialize(options = {})
         @cache = options[:store] || MemoryStore.new
-        @serializer = options[:serializer] || JSON
+        @serializer = options[:serializer] || Faraday::HttpCache.default_serializer
         @logger = options[:logger]
         assert_valid_store!
+      end
+
+      def prefix
+        (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
+      end
+
+      def cache_key(*parts)
+        Digest::SHA1.hexdigest("#{prefix}#{parts.join}")
       end
 
       # Internal: Store a response inside the cache.
@@ -42,7 +51,7 @@ module Faraday
       #
       # Returns nothing.
       def write(request, response)
-        key = cache_key_for(request.url)
+        key = cache_key(request.cache_key_parts)
         entry = serialize_entry(request.serializable_hash, response.serializable_hash)
 
         entries = cache.read(key) || []
@@ -69,8 +78,8 @@ module Faraday
       #
       # Returns an instance of 'klass'.
       def read(request, klass = Faraday::HttpCache::Response)
-        cache_key = cache_key_for(request.url)
-        entries = cache.read(cache_key)
+        key = cache_key(request.cache_key_parts)
+        entries = cache.read(key)
         response = lookup_response(request, entries)
 
         if response
@@ -79,8 +88,8 @@ module Faraday
       end
 
       def delete(url)
-        cache_key = cache_key_for(url)
-        cache.delete(cache_key)
+        key = cache_key(url)
+        cache.delete(key)
       end
 
       private
@@ -140,17 +149,6 @@ module Faraday
         @serializer.load(object).each_with_object({}) do |(key, value), hash|
           hash[key.to_sym] = value
         end
-      end
-
-      # Internal: Computes the cache key for a specific request, taking in
-      # account the current serializer to avoid cross serialization issues.
-      #
-      # url - The request URL.
-      #
-      # Returns a String.
-      def cache_key_for(url)
-        prefix = (@serializer.is_a?(Module) ? @serializer : @serializer.class).name
-        Digest::SHA1.hexdigest("#{prefix}#{url}")
       end
 
       # Internal: Checks if the given cache object supports the

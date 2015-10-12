@@ -43,6 +43,7 @@ module Faraday
   #     builder.use :http_cache, store: Rails.cache, instrumenter: ActiveSupport::Notifications
   #   end
   class HttpCache < Faraday::Middleware
+
     # Internal: valid options for the 'initialize' configuration Hash.
     VALID_OPTIONS = [:store, :serializer, :logger, :shared_cache, :instrumenter, :instrument_name]
 
@@ -102,6 +103,11 @@ module Faraday
     #   # Initialize the middleware with a MemoryStore and logger
     #   store = ActiveSupport::Cache.lookup_store
     #   Faraday::HttpCache.new(app, store: store, logger: my_logger)
+
+    def self.default_serializer
+      JSON
+    end
+
     def initialize(app, options = {})
       super(app)
       assert_valid_options!(options)
@@ -111,12 +117,13 @@ module Faraday
       @instrumenter = options[:instrumenter]
       @instrument_name = options.fetch(:instrument_name, EVENT_NAME)
       @storage = create_storage(options)
+      @serializer = options[:serializer] || self.class.default_serializer
     end
 
     # Public: Process the request into a duplicate of this instance to
     # ensure that the internal state is preserved.
     def call(env)
-      dup.call!(env)
+      dup.call!(env, serializer: @serializer)
     end
 
     # Internal: Process the stack request to try to serve a cache response.
@@ -129,7 +136,7 @@ module Faraday
     # process is finished.
     #
     # Returns a 'Faraday::Response' instance.
-    def call!(env)
+    def call!(env, options)
       @trace = []
       @request = create_request(env)
 

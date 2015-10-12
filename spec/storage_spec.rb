@@ -3,9 +3,25 @@ require 'spec_helper'
 describe Faraday::HttpCache::Storage do
   let(:cache_key) { '6e3b941d0f7572291c777b3e48c04b74124a55d0' }
   let(:request) do
-    env = { method: :get, url: 'http://test/index' }
+    env = { 
+      method: :get,
+      url: 'http://test/index',
+      body: nil
+    }
+    env[:cache_key_parts] = env.values_at(:url, :body)
     double(env.merge(serializable_hash: env))
   end
+
+  let(:request_with_body) do
+    env = { 
+      method: :get,
+      url: 'http://test/index',
+      body: JSON.dump(foo: :bar)
+    }
+    env[:cache_key_parts] = env.values_at(:url, :body)
+    double(env.merge(serializable_hash: env))
+  end
+
 
   let(:response) { double(serializable_hash: { response_headers: {} }) }
 
@@ -103,8 +119,17 @@ describe Faraday::HttpCache::Storage do
     it 'removes the entries from the cache of the given URL' do
       subject.write(request, response)
       subject.delete(request.url)
+
       expect(subject.read(request)).to be_nil
     end
+
+    it 'removes the entries from the cache of the given URL if request body' do
+      pending("cache invalidation by get body not implemented")
+      subject.write(request_with_body, response)
+      subject.delete(request_with_body.url)
+      expect(subject.read(request_with_body)).to be_nil
+    end
+
   end
 
   describe 'remove age before caching and normalize max-age if non-zero age present' do
